@@ -49,13 +49,51 @@ class Car(pygame.sprite.Sprite):
 
 # Define a class for the other cars
 class OtherCar(pygame.sprite.Sprite):
+    lane_positions = {}  # Keep track of last spawned car position in each lane
+    lane_speeds = {}  # Keep track of the speed of cars in each lane
+
     def __init__(self, lane):
         super().__init__()
         self.image = pygame.Surface((CAR_WIDTH, CAR_HEIGHT))
         self.image.fill(WHITE)
         self.rect = self.image.get_rect()
-        self.rect.center = (random.randint(lane * LANE_WIDTH, (lane + 1) * LANE_WIDTH - CAR_WIDTH), random.randint(-HEIGHT, 0))
-        self.speed = random.uniform(0.5, 1.5) * CAR_SPEED
+        self.speed = OtherCar.get_lane_speed(lane)  # Set the speed attribute
+        self.rect.center = self.get_centered_position_in_lane(lane)
+
+    @staticmethod
+    def get_lane_speed(lane):
+        # Get the speed of cars in the lane
+        return OtherCar.lane_speeds.get(lane, random.uniform(0.5, 1.5) * CAR_SPEED)
+
+    def get_centered_position_in_lane(self, lane):
+        # Get the last position of car in the lane
+        last_position = OtherCar.lane_positions.get(lane, -CAR_HEIGHT)
+
+        # Calculate the centered position
+        new_position = last_position + CAR_HEIGHT * 2 + random.randint(0, CAR_HEIGHT // 2)
+        while new_position > HEIGHT:
+            new_position -= HEIGHT
+
+        # Ensure horizontal centering
+        new_x = lane * LANE_WIDTH + (LANE_WIDTH - CAR_WIDTH) // 2
+
+        # Adjust position to avoid overlap
+        while True:
+            collision = False
+            for car in other_cars:
+                if car.rect.colliderect(pygame.Rect(new_x, new_position, CAR_WIDTH, CAR_HEIGHT)):
+                    collision = True
+                    break
+            if not collision:
+                break
+            new_position += CAR_HEIGHT
+            if new_position > HEIGHT:
+                new_position = 0
+                
+        OtherCar.lane_positions[lane] = new_position
+        OtherCar.lane_speeds[lane] = self.speed
+
+        return (new_x, new_position)
 
     def update(self):
         self.rect.y += self.speed
@@ -63,8 +101,9 @@ class OtherCar(pygame.sprite.Sprite):
         # Reset car position if it goes off the screen
         if self.rect.y > HEIGHT:
             self.rect.y = random.randint(-HEIGHT, 0)
-            self.rect.x = random.randint(self.rect.x, self.rect.x + CAR_WIDTH)
-            self.speed = random.uniform(0.5, 1.5) * CAR_SPEED
+            self.rect.x = self.get_centered_position_in_lane(self.rect.center[0] // LANE_WIDTH)[0]
+            self.speed = OtherCar.get_lane_speed(self.rect.center[0] // LANE_WIDTH)
+
 
 # Group to hold all sprites
 all_sprites = pygame.sprite.Group()
