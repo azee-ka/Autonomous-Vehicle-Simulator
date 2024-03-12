@@ -27,4 +27,4 @@ AutoDriveSim is a simulated environment for training and testing autonomous vehi
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
