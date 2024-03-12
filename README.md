@@ -19,7 +19,12 @@ AutoDriveSim is a simulated environment for training and testing autonomous vehi
    ```bash
    python main.py
 
-##Usage
+## Usage
+
 1. Use the arrow keys to control the autonomous vehicle manually.
 2. Train neural networks using reinforcement learning or other techniques to control the vehicle automatically.
 3. Visualize the training progress and behavior of the autonomous vehicle using the provided tools.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
