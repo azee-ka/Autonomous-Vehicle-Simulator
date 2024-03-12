@@ -1,6 +1,6 @@
 import numpy as np
 from .model import NeuralNetwork
-from ..simulator.simulator import Simulator
+from simulator.simulator import Simulator
 
 class Trainer:
     def __init__(self, model, simulator):
@@ -8,14 +8,22 @@ class Trainer:
         self.simulator = simulator
 
     def preprocess_data(self, data):
-        # Preprocess data here (e.g., normalization, reshaping)
-        return data
+        normalized_data = (data - np.min(data)) / (np.max(data) - np.min(data))
+        return normalized_data
 
     def generate_training_data(self, num_samples):
-        # Generate training data (e.g., state-action pairs) from the simulator
-        # This could involve running the simulation and collecting data
-        # return X_train, y_train
-        pass
+        X_train = []
+        y_train = []
+        for _ in range(num_samples):
+            # Example: Get state from the simulator
+            state = self.simulator.get_state()
+            # Example: Get action from the simulator
+            action = self.simulator.get_action()
+            X_train.append(state)
+            y_train.append(action)
+        X_train = np.array(X_train).astype('float32')
+        y_train = np.array([float(y) if y != 'none' else 0.0 for y in y_train]).astype('float32')
+        return X_train, y_train
 
     def train_model(self, num_samples, epochs):
         for _ in range(epochs):

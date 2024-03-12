@@ -27,6 +27,20 @@ class Simulator:
         self.obstacle_x = random.randint(0, self.width - self.obstacle_width)
         self.obstacle_y = -self.obstacle_height
 
+    def get_state(self):
+        # Return the current state of the simulation (e.g., position of the car)
+        return (self.car_x, self.car_y)
+    
+    def get_action(self):
+        # Return the action (e.g., left or right) based on user input or AI decision
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            return "left"
+        elif keys[pygame.K_RIGHT]:
+            return "right"
+        else:
+            return "none"
+    
     def run(self):
         self.is_running = True
         while self.is_running:

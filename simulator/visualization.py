@@ -1,5 +1,6 @@
 import pygame
 import random
+import os
 
 class Visualization:
     def __init__(self, width=800, height=600):
@@ -13,14 +14,19 @@ class Visualization:
 
         self.is_running = False
         self.collision = False
+        
+         # Adjust the path to load the images from the assets folder
+        self.car_image = pygame.image.load(os.path.join("assets", "car_image.png"))
+        self.obstacle_image = pygame.image.load(os.path.join("assets", "obstacle_image.png"))
+        self.traffic_light_image = pygame.image.load(os.path.join("assets", "traffic_light_image.png"))
 
-        self.car_image = pygame.image.load("car_image.png")  # Load car image
+        self.car_image = pygame.image.load(self.car_image)  # Load car image
         self.car_rect = self.car_image.get_rect()
         self.car_x = self.width // 2
         self.car_y = self.height - 100
         self.car_speed = 5
 
-        self.obstacle_image = pygame.image.load("obstacle_image.png")  # Load obstacle image
+        self.obstacle_image = pygame.image.load(self.obstacle_image)  # Load obstacle image
         self.obstacle_rect = self.obstacle_image.get_rect()
         self.obstacle_width = self.obstacle_rect.width
         self.obstacle_height = self.obstacle_rect.height
@@ -29,7 +35,7 @@ class Visualization:
         self.obstacle_x = random.randint(0, self.width - self.obstacle_width)
         self.obstacle_y = -self.obstacle_height
 
-        self.traffic_light_image = pygame.image.load("traffic_light_image.png")  # Load traffic light image
+        self.traffic_light_image = pygame.image.load(self.traffic_light_image)  # Load traffic light image
         self.traffic_light_rect = self.traffic_light_image.get_rect()
         self.traffic_light_x = self.width // 2 - self.traffic_light_rect.width // 2
         self.traffic_light_y = 50
