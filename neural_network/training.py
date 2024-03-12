@@ -15,15 +15,18 @@ class Trainer:
         X_train = []
         y_train = []
         for _ in range(num_samples):
-            # Example: Get state from the simulator
             state = self.simulator.get_state()
-            # Example: Get action from the simulator
+            speed = self.simulator.car_speed  # Access speed attribute directly
+            direction = self.simulator.car_direction  # Example: Get direction of the car
+            # Add speed and direction to the state
+            state = state + (speed, direction)
             action = self.simulator.get_action()
             X_train.append(state)
             y_train.append(action)
         X_train = np.array(X_train).astype('float32')
         y_train = np.array([float(y) if y != 'none' else 0.0 for y in y_train]).astype('float32')
         return X_train, y_train
+
 
     def train_model(self, num_samples, epochs):
         for _ in range(epochs):
