@@ -14,7 +14,7 @@ class RoadSimulation:
         self.LANE_WIDTH = self.WIDTH // self.LANE_COUNT
         self.CAR_WIDTH = 40
         self.CAR_HEIGHT = 60
-        self.CAR_SPEED = 2
+        self.CAR_SPEED = 1
         self.FPS = 60
         self.WHITE = (255, 255, 255)
         self.RED = (255, 0, 0)
@@ -62,19 +62,19 @@ class RoadSimulation:
 
             # Get user input for controllable car
             keys = pygame.key.get_pressed()
-            direction = ""
+            direction_x = 0
+            direction_y = 0
             if keys[pygame.K_LEFT]:
-                direction = "left"
+                direction_x = -1
             if keys[pygame.K_RIGHT]:
-                direction = "right"
+                direction_x = 1
             if keys[pygame.K_UP]:
-                direction = "up"
+                direction_y = -1
             if keys[pygame.K_DOWN]:
-                direction = "down"
+                direction_y = 1
 
-            # Update controllable car only if a direction key is pressed
-            if direction:
-                self.controllable_car.update(direction)
+            # Update controllable car
+            self.controllable_car.update(direction_x, direction_y)
 
             # Check for collisions between controllable car and other cars
             for other_car in self.other_cars:
@@ -107,6 +107,7 @@ class RoadSimulation:
 
 
 
+
 class Car(pygame.sprite.Sprite):
     def __init__(self, x, y, road_simulation):
         super().__init__()
@@ -118,34 +119,37 @@ class Car(pygame.sprite.Sprite):
         self.prev_x = x
         self.prev_y = y
 
-    def update(self, direction):
+    def update(self, direction_x, direction_y):
         self.prev_x, self.prev_y = self.rect.center
 
-        if direction == "left":
-            self.rect.x -= self.road_simulation.CAR_SPEED
-        if direction == "right":
-            self.rect.x += self.road_simulation.CAR_SPEED
-        if direction == "up":
-            self.rect.y -= self.road_simulation.CAR_SPEED
-        if direction == "down":
-            self.rect.y += self.road_simulation.CAR_SPEED
+        self.rect.x += direction_x * self.road_simulation.CAR_SPEED
+        self.rect.y += direction_y * self.road_simulation.CAR_SPEED
 
         # Keep the car within the screen boundaries
         self.rect.x = max(0, min(self.rect.x, self.road_simulation.WIDTH - self.road_simulation.CAR_WIDTH))
         self.rect.y = max(0, min(self.rect.y, self.road_simulation.HEIGHT - self.road_simulation.CAR_HEIGHT))
 
+
     def check_collision(self, other_car):
         return self.rect.colliderect(other_car.rect)
 
     def handle_collision(self, other_car):
-        if self.rect.right < other_car.rect.left:  # Collision from the front
-            self.rect.right = other_car.rect.left
-        elif self.rect.left > other_car.rect.right:  # Collision from the back
-            self.rect.left = other_car.rect.right
-        elif self.rect.bottom < other_car.rect.top:  # Collision from the top
-            self.rect.bottom = other_car.rect.top
-        elif self.rect.top > other_car.rect.bottom:  # Collision from the bottom
-            self.rect.top = other_car.rect.bottom
+        # Check the direction of the collision
+        dx = other_car.rect.centerx - self.rect.centerx
+        dy = other_car.rect.centery - self.rect.centery
+
+        if abs(dx) > abs(dy):
+            # Horizontal collision
+            if dx > 0:
+                self.rect.right = other_car.rect.left
+            else:
+                self.rect.left = other_car.rect.right
+        else:
+            # Vertical collision
+            if dy > 0:
+                self.rect.bottom = other_car.rect.top
+            else:
+                self.rect.top = other_car.rect.bottom
 
         # Additional logic for specific collisions
         if self.rect.right >= other_car.rect.left and self.prev_x < other_car.rect.left:
@@ -160,31 +164,31 @@ class Car(pygame.sprite.Sprite):
         elif self.rect.top <= other_car.rect.bottom and self.prev_y > other_car.rect.bottom:
             # Front collision with other car's back
             self.rect.top = other_car.rect.bottom
-            self.speed = -other_car.speed
-            # self.drag_backwards(other_car)
 
-            # # Stick to the other car
-            # self.rect.y += other_car.speed
-            # if self.rect.left < 0:
-            #     self.rect.right = self.road_simulation.HEIGHT
-            # elif self.rect.right > self.road_simulation.HEIGHT:
-            #     self.rect.left = 0
+    def drag_backwards(self, other_car):
+        # Calculate the new position based on the other car's position
+        self.rect.top = other_car.rect.bottom
 
-            
-    # def drag_backwards(self, other_car):
-    #     # Calculate the new position based on the other car's position
-    #     self.rect.y = other_car.rect.top + self.rect.height
+        # Keep moving the car back while there is a collision
+        while any(self.rect.colliderect(car.rect) for car in self.road_simulation.all_sprites if car != self):
+            self.rect.y -= other_car.rect.y  # Move the car up
 
-    #     # Adjust the position to stay attached to the other car
-    #     if self.rect.top > other_car.rect.bottom and self.rect.top < other_car.rect.top:
-    #         self.rect.top = other_car.rect.bottom
-    #         self.speed = other_car.speed
+            # Reposition if the car reaches the end of the canvas
+            if self.rect.top < 0:
+                self.rect.top = 0
+            elif self.rect.bottom > self.road_simulation.HEIGHT:
+                self.rect.bottom = self.road_simulation.HEIGHT
 
-    #     # Reposition if the car reaches the end of the canvas
-    #     if self.rect.right > self.road_simulation.WIDTH:
-    #         self.rect.right = self.road_simulation.WIDTH
-    #     elif self.rect.left < 0:
-    #         self.rect.left = 0
+            # If the car reaches the top without finding a clear spot, stop moving
+            if self.rect.top == 0:
+                break
+
+        # Reposition if the car reaches the end of the canvas
+        if self.rect.right > self.road_simulation.WIDTH:
+            self.rect.right = self.road_simulation.WIDTH
+        elif self.rect.left < 0:
+            self.rect.left = 0
+
 
 
 
