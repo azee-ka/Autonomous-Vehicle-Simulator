@@ -140,15 +140,42 @@ while running:
     if keys[pygame.K_DOWN]:
         direction = "down"
 
-    # Update controllable car
-    controllable_car.update(direction)
+    # Store the current position of the controllable car
+    prev_x, prev_y = controllable_car.rect.center
+
+    # Update controllable car only if a direction key is pressed
+    if direction:
+        controllable_car.update(direction)
+
+    # Check for collisions between controllable car and other cars
+    collisions = pygame.sprite.spritecollide(controllable_car, other_cars, False)
+    for collision_car in collisions:
+        # Prevent sticky overlapping for all directions
+        if controllable_car.rect.colliderect(collision_car.rect):
+            if direction == "left":
+                controllable_car.rect.left = collision_car.rect.right
+            elif direction == "right":
+                controllable_car.rect.right = collision_car.rect.left
+            elif direction == "up":
+                controllable_car.rect.top = collision_car.rect.bottom
+            elif direction == "down":
+                controllable_car.rect.bottom = collision_car.rect.top
+
+        # If collision is from the front or back and the controllable car is not moving, move it back to its previous position
+        if direction == "" and (controllable_car.rect.colliderect(collision_car.rect) or
+                                (prev_x, prev_y) == controllable_car.rect.center):
+            if prev_x < collision_car.rect.centerx:
+                controllable_car.rect.right = collision_car.rect.left
+            elif prev_x > collision_car.rect.centerx:
+                controllable_car.rect.left = collision_car.rect.right
+            elif prev_y < collision_car.rect.centery:
+                controllable_car.rect.bottom = collision_car.rect.top
+            elif prev_y > collision_car.rect.centery:
+                controllable_car.rect.top = collision_car.rect.bottom
+
 
     # Update other cars
     other_cars.update()
-
-    # Check for collisions between controllable car and other cars
-    if pygame.sprite.spritecollide(controllable_car, other_cars, False):
-        print("Collision detected!")
 
     # Clear the screen
     screen.fill((0, 0, 0))
