@@ -1,3 +1,5 @@
+# simulation/simulation.py
+
 import pygame
 import random
 import sys
@@ -14,7 +16,7 @@ class RoadSimulation:
         self.LANE_WIDTH = self.WIDTH // self.LANE_COUNT
         self.CAR_WIDTH = 40
         self.CAR_HEIGHT = 60
-        self.CAR_SPEED = 1
+        self.CAR_SPEED = 2
         self.FPS = 60
         self.WHITE = (255, 255, 255)
         self.RED = (255, 0, 0)
