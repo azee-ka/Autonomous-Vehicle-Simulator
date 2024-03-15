@@ -3,6 +3,7 @@
 import pygame
 import random
 import sys
+import numpy as np
 
 class RoadSimulation:
     def __init__(self):
@@ -21,6 +22,14 @@ class RoadSimulation:
         self.WHITE = (255, 255, 255)
         self.RED = (255, 0, 0)
 
+
+
+         # Vision parameters
+        self.vision_radius = 50  # Radius of the vision circle
+        self.vision_color = (0, 255, 0, 50)  # Green with transparency
+        
+        
+        
         # Create the screen
         self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
         pygame.display.set_caption('Road Simulation')
@@ -52,6 +61,35 @@ class RoadSimulation:
         other_car = OtherCar(lane, self)
         self.all_sprites.add(other_car)
         return other_car
+
+
+    def get_vision_data(self):
+        # Get the position of the car
+        car_center_x, car_center_y = self.controllable_car.rect.center
+
+        # Create a vision circle around the car
+        vision_circle = pygame.Surface((self.vision_radius * 2, self.vision_radius * 2), pygame.SRCALPHA)
+        pygame.draw.circle(vision_circle, self.vision_color, (self.vision_radius, self.vision_radius), self.vision_radius)
+
+        # Get the alpha values of the vision circle
+        vision_data = pygame.PixelArray(vision_circle)
+        alpha_values = [vision_data[x, y] & 0xff for x in range(self.vision_radius * 2) for y in range(self.vision_radius * 2)]
+
+        # Convert alpha values to coordinates relative to the car's center
+        vision_coordinates = np.argwhere(np.array(alpha_values) > 0) - [self.vision_radius, self.vision_radius]
+        vision_coordinates += [car_center_x, car_center_y]
+
+        # Normalize vision coordinates
+        vision_coordinates_norm = vision_coordinates / self.HEIGHT
+
+        # Ensure vision data has the correct shape
+        vision_data_shape = vision_coordinates_norm.shape
+        if len(vision_data_shape) == 1:
+            vision_coordinates_norm = vision_coordinates_norm.reshape(1, -1)
+
+        return vision_coordinates_norm
+
+
 
     def run(self):
         # Main game loop

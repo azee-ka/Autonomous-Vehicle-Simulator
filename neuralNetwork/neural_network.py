@@ -37,39 +37,72 @@ class NeuralNetwork:
         self.bias_input_hidden = bias_input_hidden
         self.weights_hidden_output = weights_hidden_output
         self.bias_hidden_output = bias_hidden_output
+        
+    def predict(self, x):
+        # Forward pass
+        hidden_layer_input = np.dot(x, self.weights_input_hidden)
+        hidden_layer_output = self.sigmoid(hidden_layer_input)
+        output_layer_input = np.dot(hidden_layer_output, self.weights_hidden_output)
+        output = self.sigmoid(output_layer_input)
+        
+        # Ensure output has at least two elements
+        if output.size < 2:
+            output = np.append(output, [0] * (2 - output.size))
+        
+        return output
 
-# Define the car controller class
+    
 class CarController:
     def __init__(self, road_simulation):
         self.road_simulation = road_simulation
-        self.neural_network = NeuralNetwork(input_size=2, hidden_size=5, output_size=2)  # Input size: 2 (x, y), Output size: 2 (direction_x, direction_y)
-        self.vision_radius = 50  # Radius of the vision circle
-        self.vision_color = (0, 255, 0, 50)  # Green with transparency
+        self.neural_network = NeuralNetwork(input_size=2, hidden_size=5, output_size=2)
+        self.vision_radius = 50
+        self.vision_color = (0, 255, 0, 50)
+        self.last_state = None
+        self.last_action = None
+        self.total_reward = 0
+        self.learning_rate = 0.1
+        self.discount_factor = 0.9
 
     def update(self):
-        # Get the position of the car
-        car_center_x, car_center_y = self.road_simulation.controllable_car.rect.center
+        vision_data = self.road_simulation.get_vision_data()
+        control_signals = self.neural_network.predict(vision_data)
+        self.road_simulation.controllable_car.update(control_signals[0], control_signals[1])
 
-        # Create a vision circle around the car
+        # Check for collisions
+        collision = any(self.road_simulation.controllable_car.rect.colliderect(other_car.rect) for other_car in self.road_simulation.other_cars)
+
+        # Calculate reward
+        reward = -1 if collision else 1
+
+        # Update Q-values
+        if self.last_state is not None:
+            self.total_reward += reward
+            new_state = vision_data
+            new_action = control_signals
+
+            if not collision:
+                # Update Q-value using Q-learning update rule
+                q_value = self.neural_network.forward(np.array([self.last_state]))[0]
+                max_q_value = np.max(self.neural_network.forward(np.array([new_state]))[0])
+                target_q_value = reward + self.discount_factor * max_q_value
+                q_value[self.last_action] += self.learning_rate * (target_q_value - q_value[self.last_action])
+                self.neural_network.set_weights(q_value)
+
+            self.last_state = new_state
+            self.last_action = new_action
+
+        # Reset if collision
+        if collision:
+            self.reset()
+
+        # Update display
+        car_center_x, car_center_y = self.road_simulation.controllable_car.rect.center
         vision_circle = pygame.Surface((self.vision_radius * 2, self.vision_radius * 2), pygame.SRCALPHA)
         pygame.draw.circle(vision_circle, self.vision_color, (self.vision_radius, self.vision_radius), self.vision_radius)
-
-        # Get the pixels within the vision circle
-        vision_data = pygame.PixelArray(vision_circle)
-        vision_pixels = np.array(vision_data)
-
-        # Convert vision pixels to coordinates relative to the car's center
-        vision_coordinates = np.argwhere(vision_pixels[:, :, 3] > 0) - [self.vision_radius, self.vision_radius]
-        vision_coordinates += [car_center_x, car_center_y]
-
-        # Normalize vision coordinates
-        vision_coordinates_norm = vision_coordinates / self.road_simulation.HEIGHT
-
-        # Forward pass through the neural network to get control signals
-        control_signals = self.neural_network.forward(vision_coordinates_norm)
-
-        # Update the controllable car based on the control signals
-        self.road_simulation.controllable_car.update(control_signals[0, 0], control_signals[0, 1])
-
-        # Update the display with the vision circle
         self.road_simulation.screen.blit(vision_circle, (car_center_x - self.vision_radius, car_center_y - self.vision_radius))
+
+    def reset(self):
+        self.last_state = None
+        self.last_action = None
+        self.total_reward = 0
